@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Админ-панель</title>
+<style>
+  body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
+  h1 { margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { padding: 10px; border-bottom: 1px solid #333; text-align: left; }
+  .btn { padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; color: #fff; }
+  .edit { background: #3ea6ff; color: #000; }
+  .danger { background: #d32f2f; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; }
+  .modal { background: #222; padding: 20px; border-radius: 8px; width: 400px; }
+  input, textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px; }
+</style>
+</head>
+<body>
+<h1>Секретная Админ-панель 🚀</h1>
+<div style="margin-bottom:20px">
+  <button class="btn edit" onclick="loadUsers()">Пользователи</button>
+  <button class="btn edit" onclick="loadVideos()">Видео</button>
+  <button class="btn danger" onclick="localStorage.clear(); location.reload()">Выйти</button>
+</div>
+<div id="content">Загрузка...</div>
+<div id="modalRoot"></div>
+
+<script>
+const API = '';
+let token = localStorage.getItem('mytube_token');
+let adminUser = JSON.parse(localStorage.getItem('mytube_user') || 'null');
+
+if (!token || adminUser?.role !== 'ADMIN') {
+  document.getElementById('content').innerHTML = `<h2>Доступ запрещён</h2><p>Войдите на основном сайте как администратор, затем вернитесь сюда.</p><a href="/" style="color:#3ea6ff">На главную</a>`;
+} else {
+  loadVideos();
+}
+
+function authHeaders() { return { Authorization: 'Bearer ' + token }; }
+
+async function loadVideos() {
+  const res = await fetch(`${API}/api/admin/videos`, { headers: authHeaders() });
+  if(!res.ok) return document.getElementById('content').innerHTML = 'Ошибка доступа';
+  const videos = await res.json();
+  document.getElementById('content').innerHTML = `<h2>Все видео</h2><table>
+    <tr><th>Название</th><th>Автор</th><th>Статус</th><th>Действия</th></tr>
+    ${videos.map(v => `<tr>
+      <td>${v.title}</td><td>${v.authorName}</td><td>${v.status}</td>
+      <td>
+        <button class="btn edit" onclick="openEdit('${v.id}', '${v.title.replace(/'/g, "\\'")}', '${(v.description||'').replace(/'/g, "\\'")}', '${v.status}')">Ред.</button>
+        <button class="btn danger" onclick="delVideo('${v.id}')">Удал.</button>
+      </td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+async function loadUsers() {
+  const res = await fetch(`${API}/api/admin/users`, { headers: authHeaders() });
+  const users = await res.json();
+  document.getElementById('content').innerHTML = `<h2>Пользователи</h2><table>
+    <tr><th>Имя</th><th>Email</th><th>Роль</th><th>Действия</th></tr>
+    ${users.map(u => `<tr>
+      <td>${u.username}</td><td>${u.email}</td><td>${u.role}</td>
+      <td>${u.id !== adminUser.id ? `<button class="btn danger" onclick="delUser('${u.id}')">Удал.</button>` : '—'}</td>
+    </tr>`).join('')}
+  </table>`;
+}
+
+function openEdit(id, title, desc, status) {
+  document.getElementById('modalRoot').innerHTML = `
+    <div class="modal-backdrop">
+      <div class="modal">
+        <h3>Редактировать</h3>
+        <input id="eTitle" value="${title}" placeholder="Название">
+        <textarea id="eDesc" rows="3" placeholder="Описание">${desc}</textarea>
+        <select id="eStatus">
+          <option value="OK" ${status==='OK'?'selected':''}>Активно</option>
+          <option value="BLOCKED" ${status==='BLOCKED'?'selected':''}>Заблокировано</option>
+        </select>
+        <input id="eFile" type="file" accept="video/*">
+        <button class="btn edit" onclick="saveEdit('${id}')">Сохранить</button>
+        <button class="btn danger" onclick="document.getElementById('modalRoot').innerHTML=''">Отмена</button>
+      </div>
+    </div>`;
+}
+
+async function saveEdit(id) {
+  const formData = new FormData();
+  formData.append('title', document.getElementById('eTitle').value);
+  formData.append('description', document.getElementById('eDesc').value);
+  formData.append('status', document.getElementById('eStatus').value);
+  const file = document.getElementById('eFile').files[0];
+  if (file) formData.append('video', file);
+
+  await fetch(`${API}/api/admin/videos/${id}`, { method: 'PATCH', headers: authHeaders(), body: formData });
+  document.getElementById('modalRoot').innerHTML = '';
+  loadVideos();
+}
+
+async function delVideo(id) { if(confirm('Удалить?')) { await fetch(`${API}/api/admin/videos/${id}`, {method:'DELETE',headers:authHeaders()}); loadVideos(); } }
+async function delUser(id) { if(confirm('Удалить пользователя?')) { await fetch(`${API}/api/admin/users/${id}`, {method:'DELETE',headers:authHeaders()}); loadUsers(); } }
+</script>
+</body>
+</html>
