@@ -3,28 +3,38 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Админ-панель</title>
+<title>Секретная Админ-панель</title>
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1384/1384060.png">
 <style>
-  body { font-family: sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
-  h1 { margin-bottom: 20px; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { padding: 10px; border-bottom: 1px solid #333; text-align: left; }
-  .btn { padding: 6px 12px; border-radius: 4px; border: none; cursor: pointer; color: #fff; }
+  body { font-family: 'Roboto', sans-serif; background: #0f0f0f; color: #fff; padding: 20px; }
+  h1 { margin-bottom: 20px; font-size: 24px; display: flex; align-items: center; gap: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; background: #1a1a1a; border-radius: 8px; overflow: hidden; }
+  th, td { padding: 12px 15px; border-bottom: 1px solid #333; text-align: left; }
+  th { background: #222; color: #aaa; font-weight: 500; }
+  tr:hover { background: #222; }
+  .btn { padding: 8px 14px; border-radius: 6px; border: none; cursor: pointer; color: #fff; font-weight: 500; font-size: 13px; transition: 0.2s; }
   .edit { background: #3ea6ff; color: #000; }
+  .edit:hover { background: #65b8ff; }
   .danger { background: #d32f2f; }
-  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; }
-  .modal { background: #222; padding: 20px; border-radius: 8px; width: 400px; }
-  input, textarea, select { width: 100%; margin-bottom: 10px; padding: 8px; background: #111; border: 1px solid #333; color: #fff; border-radius: 4px; }
+  .danger:hover { background: #f44336; }
+  .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+  .tabs .btn { background: #272727; font-size: 15px; padding: 10px 20px; }
+  .tabs .btn.active { background: #ff0000; }
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+  .modal { background: #212121; padding: 24px; border-radius: 12px; width: 100%; max-width: 450px; }
+  .modal h3 { margin-bottom: 15px; }
+  input, textarea, select { width: 100%; margin-bottom: 12px; padding: 10px; background: #121212; border: 1px solid #333; color: #fff; border-radius: 6px; outline: none; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 10px; }
 </style>
 </head>
 <body>
-<h1>Секретная Админ-панель 🚀</h1>
-<div style="margin-bottom:20px">
-  <button class="btn edit" onclick="loadUsers()">Пользователи</button>
-  <button class="btn edit" onclick="loadVideos()">Видео</button>
-  <button class="btn danger" onclick="localStorage.clear(); location.reload()">Выйти</button>
+<h1>🚀 Секретная Админ-панель</h1>
+<div class="tabs">
+  <button class="btn active" id="tab-videos" onclick="loadVideos()">Видео</button>
+  <button class="btn" id="tab-users" onclick="loadUsers()">Пользователи</button>
+  <button class="btn danger" style="margin-left:auto" onclick="localStorage.clear(); location.reload()">Выйти</button>
 </div>
-<div id="content">Загрузка...</div>
+<div id="content">Проверка доступа...</div>
 <div id="modalRoot"></div>
 
 <script>
@@ -32,38 +42,67 @@ const API = '';
 let token = localStorage.getItem('mytube_token');
 let adminUser = JSON.parse(localStorage.getItem('mytube_user') || 'null');
 
+// Базовая проверка на клиенте (чтобы не грузить интерфейс)
 if (!token || adminUser?.role !== 'ADMIN') {
-  document.getElementById('content').innerHTML = `<h2>Доступ запрещён</h2><p>Войдите на основном сайте как администратор, затем вернитесь сюда.</p><a href="/" style="color:#3ea6ff">На главную</a>`;
+  document.getElementById('content').innerHTML = `
+    <div style="text-align:center; margin-top:50px;">
+      <h2>⛔ Доступ запрещён</h2>
+      <p style="color:#aaa; margin-top:10px">Войдите на основном сайте как администратор.</p>
+      <a href="/" style="color:#3ea6ff; text-decoration:none; display:inline-block; margin-top:20px; border:1px solid #3ea6ff; padding:10px 20px; border-radius:20px;">Вернуться на главную</a>
+    </div>`;
 } else {
   loadVideos();
 }
 
 function authHeaders() { return { Authorization: 'Bearer ' + token }; }
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+
+function setTab(activeId) {
+  document.getElementById('tab-videos').classList.remove('active');
+  document.getElementById('tab-users').classList.remove('active');
+  document.getElementById(activeId).classList.add('active');
+}
 
 async function loadVideos() {
+  setTab('tab-videos');
+  document.getElementById('content').innerHTML = 'Загрузка...';
   const res = await fetch(`${API}/api/admin/videos`, { headers: authHeaders() });
-  if(!res.ok) return document.getElementById('content').innerHTML = 'Ошибка доступа';
+  
+  if(!res.ok) {
+    const err = await res.json();
+    return document.getElementById('content').innerHTML = `<h2 style="color:#ff5555">Ошибка: ${err.error}</h2>`;
+  }
+  
   const videos = await res.json();
-  document.getElementById('content').innerHTML = `<h2>Все видео</h2><table>
+  document.getElementById('content').innerHTML = `<table>
     <tr><th>Название</th><th>Автор</th><th>Статус</th><th>Действия</th></tr>
     ${videos.map(v => `<tr>
-      <td>${v.title}</td><td>${v.authorName}</td><td>${v.status}</td>
+      <td>${esc(v.title)}</td><td>${esc(v.authorName)}</td>
+      <td>${v.status === 'OK' ? '✅ Опубликовано' : '⛔ Заблокировано'}</td>
       <td>
-        <button class="btn edit" onclick="openEdit('${v.id}', '${v.title.replace(/'/g, "\\'")}', '${(v.description||'').replace(/'/g, "\\'")}', '${v.status}')">Ред.</button>
-        <button class="btn danger" onclick="delVideo('${v.id}')">Удал.</button>
+        <button class="btn edit" onclick="openEdit('${v.id}', '${esc(v.title).replace(/'/g, "\\'")}', '${esc(v.description||'').replace(/'/g, "\\'")}', '${v.status}')">Редактировать</button>
+        <button class="btn danger" onclick="delVideo('${v.id}')">Удалить</button>
       </td>
     </tr>`).join('')}
   </table>`;
 }
 
 async function loadUsers() {
+  setTab('tab-users');
+  document.getElementById('content').innerHTML = 'Загрузка...';
   const res = await fetch(`${API}/api/admin/users`, { headers: authHeaders() });
+  
+  if(!res.ok) {
+    const err = await res.json();
+    return document.getElementById('content').innerHTML = `<h2 style="color:#ff5555">Ошибка: ${err.error}</h2>`;
+  }
+
   const users = await res.json();
-  document.getElementById('content').innerHTML = `<h2>Пользователи</h2><table>
+  document.getElementById('content').innerHTML = `<table>
     <tr><th>Имя</th><th>Email</th><th>Роль</th><th>Действия</th></tr>
     ${users.map(u => `<tr>
-      <td>${u.username}</td><td>${u.email}</td><td>${u.role}</td>
-      <td>${u.id !== adminUser.id ? `<button class="btn danger" onclick="delUser('${u.id}')">Удал.</button>` : '—'}</td>
+      <td>${esc(u.username)}</td><td>${esc(u.email)}</td><td>${u.role}</td>
+      <td>${u.id !== adminUser.id ? `<button class="btn danger" onclick="delUser('${u.id}')">Удалить</button>` : '<span style="color:#888">Это вы</span>'}</td>
     </tr>`).join('')}
   </table>`;
 }
@@ -72,7 +111,7 @@ function openEdit(id, title, desc, status) {
   document.getElementById('modalRoot').innerHTML = `
     <div class="modal-backdrop">
       <div class="modal">
-        <h3>Редактировать</h3>
+        <h3>Редактировать видео</h3>
         <input id="eTitle" value="${title}" placeholder="Название">
         <textarea id="eDesc" rows="3" placeholder="Описание">${desc}</textarea>
         <select id="eStatus">
@@ -80,8 +119,10 @@ function openEdit(id, title, desc, status) {
           <option value="BLOCKED" ${status==='BLOCKED'?'selected':''}>Заблокировано</option>
         </select>
         <input id="eFile" type="file" accept="video/*">
-        <button class="btn edit" onclick="saveEdit('${id}')">Сохранить</button>
-        <button class="btn danger" onclick="document.getElementById('modalRoot').innerHTML=''">Отмена</button>
+        <div class="modal-actions">
+          <button class="btn edit" onclick="saveEdit('${id}')" style="flex:1">Сохранить</button>
+          <button class="btn danger" onclick="document.getElementById('modalRoot').innerHTML=''" style="flex:1">Отмена</button>
+        </div>
       </div>
     </div>`;
 }
@@ -94,13 +135,24 @@ async function saveEdit(id) {
   const file = document.getElementById('eFile').files[0];
   if (file) formData.append('video', file);
 
-  await fetch(`${API}/api/admin/videos/${id}`, { method: 'PATCH', headers: authHeaders(), body: formData });
+  const res = await fetch(`${API}/api/admin/videos/${id}`, { method: 'PATCH', headers: authHeaders(), body: formData });
+  if(!res.ok) return alert('Ошибка сохранения');
   document.getElementById('modalRoot').innerHTML = '';
   loadVideos();
 }
 
-async function delVideo(id) { if(confirm('Удалить?')) { await fetch(`${API}/api/admin/videos/${id}`, {method:'DELETE',headers:authHeaders()}); loadVideos(); } }
-async function delUser(id) { if(confirm('Удалить пользователя?')) { await fetch(`${API}/api/admin/users/${id}`, {method:'DELETE',headers:authHeaders()}); loadUsers(); } }
+async function delVideo(id) { 
+  if(confirm('Удалить видео навсегда?')) { 
+    await fetch(`${API}/api/admin/videos/${id}`, {method:'DELETE',headers:authHeaders()}); 
+    loadVideos(); 
+  } 
+}
+async function delUser(id) { 
+  if(confirm('Удалить пользователя?')) { 
+    await fetch(`${API}/api/admin/users/${id}`, {method:'DELETE',headers:authHeaders()}); 
+    loadUsers(); 
+  } 
+}
 </script>
 </body>
 </html>
