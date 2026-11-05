@@ -10,7 +10,10 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = 'change-this-secret-in-production';
+
+// 🔒 СЕКРЕТНЫЕ ДАННЫЕ БЕРУТСЯ ИЗ RENDER (Environment Variables)
+const JWT_SECRET = process.env.JWT_SECRET || 'super-secret-fallback-key';
+const SECRET_ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@test.com';
 
 const UPLOADS = path.join(__dirname, 'uploads');
 if (!fs.existsSync(UPLOADS)) fs.mkdirSync(UPLOADS);
@@ -58,15 +61,25 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(UPLOADS));
 
-function auth(roles = []) {
+function auth(roles = [], requiredEmail = null) {
   return (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    const header = req.headers.authorization || '';
+    const token = header.startsWith('Bearer ') ? header.slice(7) : null;
     if (!token) return res.status(401).json({ error: 'Нет токена' });
     try {
       const payload = jwt.verify(token, JWT_SECRET);
-      if (roles.length && !roles.includes(payload.role)) return res.status(403).json({ error: 'Нет доступа' });
-      req.user = payload; next();
-    } catch { res.status(401).json({ error: 'Невалидный токен' }); }
+      if (roles.length && !roles.includes(payload.role))
+        return res.status(403).json({ error: 'Нет доступа' });
+      
+      // 🔒 ЖЕСТКАЯ ПРОВЕРКА: пускаем только если email совпадает с SECRET_ADMIN_EMAIL
+      if (requiredEmail && payload.email !== requiredEmail)
+        return res.status(403).json({ error: 'Нет доступа (неверный email)' });
+      
+      req.user = payload;
+      next();
+    } catch {
+      res.status(401).json({ error: 'Невалидный токен' });
+    }
   };
 }
 
@@ -82,7 +95,7 @@ app.post('/api/register', (req, res) => {
   db.prepare(`INSERT INTO users (id, username, email, password, avatar, createdAt) VALUES (?, ?, ?, ?, ?, ?)`)
     .run(id, username, email, bcrypt.hashSync(password, 10), avatar, Date.now());
 
-  const token = jwt.sign({ id, username, role: 'USER', avatar }, JWT_SECRET, { expiresIn: '30d' });
+  const token = jwt.sign({ id, username, email, role: 'USER', avatar }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { id, username, email, role: 'USER', avatar } });
 });
 
@@ -91,7 +104,7 @@ app.post('/api/login', (req, res) => {
   const user = db.prepare('SELECT * FROM users WHERE email=?').get(email);
   if (!user || !bcrypt.compareSync(password, user.password)) return res.status(401).json({ error: 'Неверные данные' });
 
-  const token = jwt.sign({ id: user.id, username: user.username, role: user.role, avatar: user.avatar }, JWT_SECRET, { expiresIn: '30d' });
+  const token = jwt.sign({ id: user.id, username: user.username, email: user.email, role: user.role, avatar: user.avatar }, JWT_SECRET, { expiresIn: '30d' });
   res.json({ token, user: { id: user.id, username: user.username, email: user.email, role: user.role, avatar: user.avatar } });
 });
 
@@ -140,14 +153,14 @@ app.post('/api/videos/:id/comment', auth(), (req, res) => {
   res.json({ ok: true });
 });
 
-// --- АДМИН ---
-app.get('/api/admin/videos', auth(['ADMIN']), (req, res) => {
+// --- АДМИН (ЗАЩИЩЕНО EMAIL ИЗ RENDER) ---
+app.get('/api/admin/videos', auth(['ADMIN'], SECRET_ADMIN_EMAIL), (req, res) => {
   res.json(db.prepare(`SELECT v.*, u.username AS authorName FROM videos v JOIN users u ON u.id = v.authorId ORDER BY v.createdAt DESC`).all());
 });
-app.get('/api/admin/users', auth(['ADMIN']), (req, res) => {
+app.get('/api/admin/users', auth(['ADMIN'], SECRET_ADMIN_EMAIL), (req, res) => {
   res.json(db.prepare('SELECT id, username, email, role FROM users').all());
 });
-app.patch('/api/admin/videos/:id', auth(['ADMIN']), upload.single('video'), (req, res) => {
+app.patch('/api/admin/videos/:id', auth(['ADMIN'], SECRET_ADMIN_EMAIL), upload.single('video'), (req, res) => {
   const v = db.prepare('SELECT * FROM videos WHERE id=?').get(req.params.id);
   if (!v) return res.status(404).json({ error: '404' });
   let newFilename = v.filename;
@@ -156,14 +169,14 @@ app.patch('/api/admin/videos/:id', auth(['ADMIN']), upload.single('video'), (req
     .run(req.body.title || v.title, req.body.description || v.description, req.body.status || v.status, newFilename, v.id);
   res.json({ ok: true });
 });
-app.delete('/api/admin/videos/:id', auth(['ADMIN']), (req, res) => {
+app.delete('/api/admin/videos/:id', auth(['ADMIN'], SECRET_ADMIN_EMAIL), (req, res) => {
   const v = db.prepare('SELECT filename FROM videos WHERE id=?').get(req.params.id);
   if (v) { fs.unlinkSync(path.join(UPLOADS, v.filename)); db.prepare('DELETE FROM videos WHERE id=?').run(req.params.id); }
   res.json({ ok: true });
 });
-app.delete('/api/admin/users/:id', auth(['ADMIN']), (req, res) => {
+app.delete('/api/admin/users/:id', auth(['ADMIN'], SECRET_ADMIN_EMAIL), (req, res) => {
   if (req.params.id !== req.user.id) db.prepare('DELETE FROM users WHERE id=?').run(req.params.id);
   res.json({ ok: true });
 });
 
-app.listen(PORT, () => console.log(`✅ Сервер: http://localhost:${PORT}`));
+app.listen(PORT, () => console.log(`✅ Сервер запущен на порту ${PORT}`));
