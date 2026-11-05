@@ -65,7 +65,7 @@ if (!adminExists) {
   console.log('✅ Админ создан: admin@test.com / admin123');
 }
 
-// ---------- Multer: файл сразу на диск ----------
+// ---------- Multer ----------
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS),
   filename: (req, file, cb) => {
@@ -75,7 +75,7 @@ const storage = multer.diskStorage({
 });
 const upload = multer({
   storage,
-  limits: { fileSize: 2 * 1024 * 1024 * 1024 } // 2 ГБ на файл
+  limits: { fileSize: 2 * 1024 * 1024 * 1024 } // 2 ГБ
 });
 
 // ---------- Middleware ----------
@@ -138,6 +138,17 @@ app.post('/api/login', (req, res) => {
     token,
     user: { id: user.id, username: user.username, email: user.email, role: user.role }
   });
+});
+
+// ---------- СМЕНА ПАРОЛЯ ----------
+app.post('/api/change-password', auth(), (req, res) => {
+  const { newPassword } = req.body || {};
+  if (!newPassword || newPassword.length < 4) 
+    return res.status(400).json({ error: 'Пароль мин. 4 символа' });
+
+  const hash = bcrypt.hashSync(newPassword, 10);
+  db.prepare('UPDATE users SET password=? WHERE id=?').run(hash, req.user.id);
+  res.json({ ok: true });
 });
 
 // ---------- СПИСОК ВИДЕО ----------
