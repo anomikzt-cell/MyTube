@@ -3,507 +3,302 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>МойTube</title>
-<link rel="icon" type="image/png" href="/MyTubeIcon.png">
+<title>МойTube - Смотри. Загружай. Общайся.</title>
+<link rel="icon" type="image/png" href="https://cdn-icons-png.flaticon.com/512/1384/1384060.png">
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, Roboto, Arial, sans-serif;
-         background: #0f0f0f; color: #f1f1f1; min-height: 100vh; }
-  header { position: sticky; top: 0; z-index: 100;
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px 16px; background: #0f0f0f;
-    border-bottom: 1px solid #272727; flex-wrap: wrap; }
-  .logo { font-size: 20px; font-weight: 700; cursor: pointer; }
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Roboto', sans-serif; }
+  body { background: #0f0f0f; color: #f1f1f1; min-height: 100vh; }
+  header { position: sticky; top: 0; z-index: 100; display: flex; align-items: center; justify-content: space-between; padding: 0 20px; height: 56px; background: #0f0f0f; border-bottom: 1px solid #272727; }
+  .logo { font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 5px; }
   .logo span { color: #ff0000; }
-  .search { flex: 1; min-width: 150px; max-width: 600px; margin: 0 auto;
-    background: #121212; border: 1px solid #303030;
-    border-radius: 20px; padding: 8px 16px; color: #fff; outline: none; }
-  header button, .btn {
-    background: #272727; color: #fff; border: none;
-    padding: 8px 16px; border-radius: 20px; cursor: pointer;
-    font-size: 14px; white-space: nowrap; }
-  header button:hover, .btn:hover { background: #3f3f3f; }
+  .search-container { flex: 1; max-width: 600px; display: flex; margin: 0 20px; }
+  .search { width: 100%; background: #121212; border: 1px solid #303030; border-radius: 20px 0 0 20px; padding: 8px 16px; color: #fff; outline: none; }
+  .search-btn { background: #222; border: 1px solid #303030; border-left: none; padding: 8px 20px; border-radius: 0 20px 20px 0; cursor: pointer; color: #fff; }
+  .search-btn:hover { background: #333; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .btn { background: #272727; color: #fff; border: none; padding: 8px 16px; border-radius: 20px; cursor: pointer; font-weight: 500; }
+  .btn:hover { background: #3f3f3f; }
   .btn-red { background: #ff0000; }
-  .btn-red:hover { background: #cc0000; }
-  main { padding: 16px; max-width: 1400px; margin: 0 auto; }
-  .grid { display: grid; gap: 20px;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
-  .card { cursor: pointer; position: relative; }
-  .thumb { width: 100%; aspect-ratio: 16/9; background: #272727;
-    border-radius: 12px; overflow: hidden; display: flex;
-    align-items: center; justify-content: center; color: #888;
-    font-size: 14px; }
+  .avatar { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; border: 1px solid #333; }
+  
+  /* Меню профиля */
+  .dropdown { position: relative; }
+  .dropdown-content { display: none; position: absolute; right: 0; top: 40px; background: #282828; min-width: 200px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden; }
+  .dropdown-content.show { display: block; }
+  .dropdown-content a { color: #fff; padding: 12px 16px; text-decoration: none; display: block; cursor: pointer; font-size: 14px; border-bottom: 1px solid #3f3f3f; }
+  .dropdown-content a:hover { background: #3f3f3f; }
+  .dropdown-content .user-info { padding: 12px 16px; font-size: 14px; color: #aaa; background: #1f1f1f; }
+
+  main { padding: 20px; max-width: 1600px; margin: 0 auto; }
+  
+  /* Shorts (Вертикальные видео) */
+  .shorts-section { margin-bottom: 40px; }
+  .shorts-title { font-size: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+  .shorts-grid { display: flex; gap: 15px; overflow-x: auto; padding-bottom: 10px; }
+  .short-card { width: 160px; height: 280px; flex-shrink: 0; border-radius: 12px; overflow: hidden; cursor: pointer; position: relative; background: #222; }
+  .short-card video { width: 100%; height: 100%; object-fit: cover; }
+  .short-card:hover { transform: scale(1.02); transition: 0.2s; }
+
+  /* Обычная сетка */
+  .grid { display: grid; gap: 20px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+  .card { cursor: pointer; }
+  .thumb { width: 100%; aspect-ratio: 16/9; background: #272727; border-radius: 12px; overflow: hidden; }
   .thumb video { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
-  .card h3 { font-size: 15px; margin-top: 8px; line-height: 1.3; }
-  .card .meta { font-size: 13px; color: #aaa; margin-top: 4px; }
-  .badge { position: absolute; top: 8px; left: 8px;
-    background: rgba(255,0,0,.85); color: #fff;
-    padding: 2px 8px; border-radius: 4px; font-size: 11px; }
-  .player-wrap { max-width: 1100px; margin: 0 auto; }
-  .player-wrap video { width: 100%; border-radius: 12px; background: #000; }
-  .title { font-size: 20px; font-weight: 700; margin: 16px 0 8px; }
-  .author { color: #aaa; font-size: 14px; margin-bottom: 16px; }
-  .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-  .desc { background: #1a1a1a; padding: 12px; border-radius: 12px;
-    white-space: pre-wrap; font-size: 14px; margin-bottom: 24px; }
-  .comments h2 { font-size: 16px; margin-bottom: 12px; }
-  .comment { background: #1a1a1a; padding: 10px; border-radius: 8px;
-    margin-bottom: 8px; font-size: 14px; }
-  .comment b { color: #3ea6ff; }
-  .comment-input { display: flex; gap: 8px; margin-bottom: 16px; }
-  .comment-input input { flex: 1; background: #121212;
-    border: 1px solid #303030; color: #fff; padding: 10px 14px;
-    border-radius: 20px; outline: none; }
-  .form-box { max-width: 400px; margin: 60px auto; background: #1a1a1a;
-    padding: 28px; border-radius: 16px; }
-  .form-box.wide { max-width: 520px; }
-  .form-box h2 { margin-bottom: 20px; }
-  .form-box input, .form-box textarea, .form-box select {
-    width: 100%; background: #121212; border: 1px solid #303030;
-    color: #fff; padding: 12px 14px; border-radius: 8px;
-    margin-bottom: 12px; outline: none; font-size: 14px;
-    font-family: inherit; }
-  .form-box .btn { width: 100%; padding: 12px; font-size: 15px; }
-  .switch { text-align: center; margin-top: 12px; font-size: 14px; color: #aaa; }
+  .card h3 { font-size: 16px; margin-top: 12px; line-height: 1.4; font-weight: 500; }
+  .meta { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 13px; color: #aaa; }
+  .meta img { width: 24px; height: 24px; border-radius: 50%; }
+
+  /* Плеер */
+  .player-wrap { max-width: 1100px; margin: 0 auto; display: flex; gap: 20px; }
+  .player-main { flex: 1; }
+  .player-main video { width: 100%; border-radius: 12px; background: #000; }
+  .title { font-size: 20px; font-weight: bold; margin: 16px 0 8px; }
+  .actions { display: flex; gap: 10px; margin-bottom: 16px; }
+  .desc { background: #1a1a1a; padding: 16px; border-radius: 12px; font-size: 14px; white-space: pre-wrap; }
+  .comments { margin-top: 20px; }
+  .comment { display: flex; gap: 10px; margin-top: 12px; }
+  .comment img { width: 40px; height: 40px; border-radius: 50%; }
+  .comment b { color: #3ea6ff; font-size: 14px; }
+  .comment p { font-size: 14px; margin-top: 2px; }
+
+  /* Модалки */
+  .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+  .modal { background: #212121; padding: 24px; border-radius: 16px; width: 100%; max-width: 500px; }
+  .modal h2 { margin-bottom: 20px; font-size: 20px; }
+  .modal input, .modal textarea, .modal select { width: 100%; background: #121212; border: 1px solid #303030; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 12px; outline: none; }
+  .form-box { max-width: 400px; margin: 80px auto; background: #1a1a1a; padding: 30px; border-radius: 16px; text-align: center; }
+  .form-box input { width: 100%; background: #121212; border: 1px solid #303030; color: #fff; padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+  .form-box .btn { width: 100%; padding: 12px; margin-top: 10px; }
+  .switch { margin-top: 15px; font-size: 14px; color: #aaa; }
   .switch a { color: #3ea6ff; cursor: pointer; }
-  .error { color: #ff5555; font-size: 13px; margin-bottom: 10px; }
-  .hint { font-size: 12px; color: #888; margin-bottom: 12px; }
-  .admin table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  .admin th, .admin td { padding: 10px; text-align: left;
-    border-bottom: 1px solid #272727; }
-  .admin th { color: #aaa; font-weight: 500; }
-  .admin .danger { color: #ff5555; background: none; border: none;
-    cursor: pointer; font-size: 13px; }
-  .admin .edit { color: #3ea6ff; background: none; border: none;
-    cursor: pointer; font-size: 13px; }
-  .cell-actions { display: flex; gap: 12px; flex-wrap: wrap; }
-  .tabs { display: flex; gap: 8px; margin-bottom: 20px; }
-  .tabs button.active { background: #ff0000; }
-  .empty { text-align: center; padding: 60px 20px; color: #888; }
-  .avatar { width: 32px; height: 32px; border-radius: 50%;
-    background: #ff0000; display: inline-flex; align-items: center;
-    justify-content: center; font-weight: 700; }
-  .modal-backdrop { position: fixed; inset: 0;
-    background: rgba(0,0,0,.75); display: flex; align-items: center;
-    justify-content: center; z-index: 1000; padding: 16px; }
-  .modal { background: #1a1a1a; padding: 24px; border-radius: 16px;
-    width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
-  .modal h2 { margin-bottom: 16px; font-size: 18px; }
-  .modal .row-btns { display: flex; gap: 8px; margin-top: 8px; }
-  .modal .row-btns .btn { flex: 1; width: auto; }
-  .cancel { background: #272727; }
-  .progress { width: 100%; height: 6px; background: #272727;
-    border-radius: 3px; overflow: hidden; margin: 12px 0; display: none; }
-  .progress-fill { height: 100%; background: #ff0000; width: 0%;
-    transition: width .15s; }
 </style>
 </head>
 <body>
 
 <header>
   <div class="logo" onclick="showPage('home')">Мой<span>Tube</span></div>
-  <input class="search" id="search" placeholder="Поиск"
-         oninput="if(route.page==='home')renderHomeInto()">
-  <div id="userArea"></div>
+  <div class="search-container">
+    <input class="search" id="search" placeholder="Поиск" oninput="if(route.page==='home')render()">
+    <button class="search-btn" onclick="render()">🔍</button>
+  </div>
+  <div class="header-right" id="userArea"></div>
 </header>
 
 <main id="app"></main>
 <div id="modalRoot"></div>
 
 <script>
-/* ============ СОСТОЯНИЕ ============ */
-const API = ''; 
+const API = '';
 let currentUser = JSON.parse(localStorage.getItem('mytube_user') || 'null');
 let token = localStorage.getItem('mytube_token') || null;
 let route = { page: 'home', id: null };
+let isUploading = false;
 
 function setAuth(t, u) {
   token = t; currentUser = u;
-  if (t) localStorage.setItem('mytube_token', t);
-  else localStorage.removeItem('mytube_token');
-  if (u) localStorage.setItem('mytube_user', JSON.stringify(u));
-  else localStorage.removeItem('mytube_user');
+  if (t) localStorage.setItem('mytube_token', t); else localStorage.removeItem('mytube_token');
+  if (u) localStorage.setItem('mytube_user', JSON.stringify(u)); else localStorage.removeItem('mytube_user');
 }
-function authHeaders() {
-  return token ? { Authorization: 'Bearer ' + token } : {};
-}
-function isAdmin() { return currentUser?.role === 'ADMIN'; }
-function canEdit(v) {
-  return currentUser && (isAdmin() || currentUser.username === v.authorName);
-}
-
-/* ============ РОУТИНГ ============ */
-function showPage(page, id = null) {
-  route = { page, id };
-  window.scrollTo(0, 0);
-  render();
-}
-async function render() {
-  renderUserArea();
-  const app = document.getElementById('app');
-  if (route.page === 'home')          app.innerHTML = await viewHome();
-  else if (route.page === 'watch')    app.innerHTML = await viewWatch(route.id);
-  else if (route.page === 'login')    app.innerHTML = viewLogin();
-  else if (route.page === 'register') app.innerHTML = viewRegister();
-  else if (route.page === 'upload')   app.innerHTML = viewUpload();
-  else if (route.page === 'admin')    app.innerHTML = await viewAdmin();
-  if (route.page === 'watch') attachWatchHandlers();
-}
-function renderHomeInto() {
-  if (route.page === 'home') viewHome().then(h => document.getElementById('app').innerHTML = h);
-}
+function authHeaders() { return token ? { Authorization: 'Bearer ' + token } : {}; }
+function esc(s) { return String(s || '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
 
 function renderUserArea() {
   const el = document.getElementById('userArea');
   if (!currentUser) {
-    el.innerHTML = `
-      <button onclick="showPage('login')">Войти</button>
-      <button class="btn-red" onclick="showPage('register')">Регистрация</button>`;
+    el.innerHTML = `<button class="btn" onclick="showPage('login')">Войти</button>
+                    <button class="btn btn-red" onclick="showPage('register')">Регистрация</button>`;
   } else {
     el.innerHTML = `
-      <button onclick="showPage('upload')">＋ Загрузить</button>
-      ${isAdmin() ? '<button onclick="showPage(\'admin\')">Админка</button>' : ''}
-      <span class="avatar" title="${currentUser.username}">${currentUser.username[0].toUpperCase()}</span>
-      <button onclick="logout()">Выйти</button>`;
+      <button class="btn" onclick="showPage('upload')">＋ Создать</button>
+      <div class="dropdown">
+        <img src="${currentUser.avatar}" class="avatar" onclick="document.getElementById('drop').classList.toggle('show')">
+        <div class="dropdown-content" id="drop">
+          <div class="user-info">Вы вошли как:<br><b>${esc(currentUser.username)}</b></div>
+          <a onclick="switchAccount()">🔄 Сменить аккаунт</a>
+          <a onclick="openPassModal()">🔒 Сменить пароль</a>
+          <a onclick="logout()" style="color:#ff5555">🚪 Выйти</a>
+        </div>
+      </div>`;
+    window.onclick = function(event) {
+      if (!event.target.matches('.avatar')) document.getElementById('drop')?.classList.remove('show');
+    }
   }
 }
-function logout() { setAuth(null, null); showPage('home'); }
 
-/* ============ ГЛАВНАЯ ============ */
+function showPage(page, id = null) { route = { page, id }; window.scrollTo(0, 0); render(); }
+
+async function render() {
+  renderUserArea();
+  const app = document.getElementById('app');
+  if (route.page === 'home') app.innerHTML = await viewHome();
+  else if (route.page === 'watch') app.innerHTML = await viewWatch(route.id);
+  else if (route.page === 'login') app.innerHTML = viewLogin();
+  else if (route.page === 'register') app.innerHTML = viewRegister();
+  else if (route.page === 'upload') app.innerHTML = viewUpload();
+  if (route.page === 'watch') {
+    document.getElementById('commentText')?.addEventListener('keydown', e => { if (e.key === 'Enter') addComment(route.id); });
+  }
+}
+
 async function viewHome() {
   const q = document.getElementById('search').value || '';
-  const res = await fetch(`${API}/api/videos?q=${encodeURIComponent(q)}`,
-                          { headers: authHeaders() });
-  const videos = await res.json();
-  if (!videos.length) {
-    return `<div class="empty"><h2>Пока нет видео</h2>
-      <p style="margin-top:12px">${currentUser ? 'Загрузите первое!' : 'Войдите и загрузите'}</p></div>`;
+  const [shorts, videos] = await Promise.all([
+    fetch(`${API}/api/videos?type=short&q=${encodeURIComponent(q)}`).then(r => r.json()),
+    fetch(`${API}/api/videos?type=video&q=${encodeURIComponent(q)}`).then(r => r.json())
+  ]);
+  
+  let html = '';
+  if (shorts.length && !q) {
+    html += `<div class="shorts-section">
+      <div class="shorts-title">⚡ Shorts</div>
+      <div class="shorts-grid">${shorts.map(v => `
+        <div class="short-card" onclick="showPage('watch','${v.id}')">
+          <video src="/uploads/${v.filename}" preload="metadata"></video>
+        </div>`).join('')}</div>
+    </div>`;
   }
-  return `<div class="grid">${videos.map(v => `
-    <div class="card" onclick="showPage('watch','${v.id}')">
-      ${v.status === 'BLOCKED' ? '<div class="badge">ЗАБЛОКИРОВАНО</div>' : ''}
-      <div class="thumb">
-        <video preload="metadata" src="/uploads/${v.filename}#t=1"></video>
-      </div>
-      <h3>${esc(v.title)}</h3>
-      <div class="meta">${esc(v.authorName)} · ${v.views} просм.</div>
-    </div>`).join('')}</div>`;
+  
+  if (videos.length) {
+    html += `<div class="grid">${videos.map(v => `
+      <div class="card" onclick="showPage('watch','${v.id}')">
+        <div class="thumb"><video src="/uploads/${v.filename}#t=1" preload="metadata"></video></div>
+        <h3>${esc(v.title)}</h3>
+        <div class="meta">
+          <img src="${v.avatar}"> ${esc(v.authorName)} · ${v.views} просм.
+        </div>
+      </div>`).join('')}</div>`;
+  }
+  
+  if (!html) html = `<div style="text-align:center;margin-top:50px;color:#888">Пока нет видео. Загрузите первое!</div>`;
+  return html;
 }
 
-/* ============ ПРОСМОТР ============ */
 async function viewWatch(id) {
-  const res = await fetch(`${API}/api/videos/${id}`, { headers: authHeaders() });
-  if (!res.ok) return `<div class="empty">Видео не найдено</div>`;
-  const v = await res.json();
-  const comments = v.comments || [];
-
-  return `<div class="player-wrap">
-    <video src="/uploads/${v.filename}" controls autoplay></video>
-    <div class="title">${esc(v.title)}</div>
-    <div class="author">${esc(v.authorName)} · ${v.views} просмотров
-      ${v.status === 'BLOCKED' ? ' · <span style="color:#ff5555">ЗАБЛОКИРОВАНО</span>' : ''}
-    </div>
-    <div class="actions">
-      <button class="btn" onclick="likeVideo('${v.id}')">👍 ${v.likes || 0}</button>
-      ${canEdit(v) ? `<button class="btn" onclick="openEditModal('${v.id}')">✎ Редактировать</button>` : ''}
-      <button class="btn" onclick="showPage('home')">← Назад</button>
-    </div>
-    <div class="desc">${esc(v.description || 'Без описания')}</div>
-    <div class="comments">
-      <h2>Комментарии (${comments.length})</h2>
-      ${currentUser ? `<div class="comment-input">
-        <input id="commentText" placeholder="Написать комментарий...">
-        <button class="btn btn-red" onclick="addComment('${v.id}')">Отправить</button>
-      </div>` : '<p style="color:#888;margin-bottom:12px">Войдите, чтобы комментировать</p>'}
-      ${comments.map(c => `<div class="comment">
-        <b>${esc(c.authorName)}</b> · ${new Date(c.createdAt).toLocaleDateString()}
-        <div style="margin-top:4px">${esc(c.text)}</div>
-      </div>`).join('')}
+  const v = await fetch(`${API}/api/videos/${id}`).then(r => r.json());
+  if (v.error) return `<div style="text-align:center;margin-top:50px">Видео не найдено</div>`;
+  
+  return `<div class="player-wrap" style="${v.isShort ? 'flex-direction:column; align-items:center;' : ''}">
+    <div class="player-main" style="${v.isShort ? 'max-width:400px; width:100%;' : ''}">
+      <video src="/uploads/${v.filename}" controls autoplay style="${v.isShort ? 'aspect-ratio:9/16;' : ''}"></video>
+      <div class="title">${esc(v.title)}</div>
+      <div class="actions">
+        <button class="btn" onclick="likeVideo('${v.id}')">👍 ${v.likes}</button>
+        <button class="btn" onclick="showPage('home')">← Назад</button>
+      </div>
+      <div class="desc">${esc(v.description || 'Без описания')}</div>
+      
+      <div class="comments">
+        <h3>Комментарии (${v.comments.length})</h3>
+        ${currentUser ? `<div style="display:flex;gap:10px;margin-top:15px">
+          <input id="commentText" placeholder="Написать..." style="flex:1;padding:10px;border-radius:20px;border:1px solid #333;background:#121212;color:#fff;outline:none">
+          <button class="btn btn-red" onclick="addComment('${v.id}')">➤</button>
+        </div>` : '<p style="color:#888;margin-top:10px">Войдите, чтобы комментировать</p>'}
+        
+        ${v.comments.map(c => `<div class="comment">
+          <img src="${c.avatar}">
+          <div><b>${esc(c.authorName)}</b><p>${esc(c.text)}</p></div>
+        </div>`).join('')}
+      </div>
     </div>
   </div>`;
 }
-function attachWatchHandlers() {
-  const inp = document.getElementById('commentText');
-  if (inp) inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') addComment(route.id);
-  });
-}
-async function likeVideo(id) {
-  if (!currentUser) return alert('Войдите');
-  await fetch(`${API}/api/videos/${id}/like`, {
-    method: 'POST', headers: authHeaders()
-  });
-  render();
-}
-async function addComment(videoId) {
-  const text = document.getElementById('commentText').value.trim();
-  if (!text) return;
-  await fetch(`${API}/api/videos/${videoId}/comment`, {
-    method: 'POST',
-    headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text })
-  });
+
+// --- ДЕЙСТВИЯ ---
+async function likeVideo(id) { if(!currentUser) return; await fetch(`${API}/api/videos/${id}/like`, {method:'POST',headers:authHeaders()}); render(); }
+async function addComment(id) {
+  const text = document.getElementById('commentText').value;
+  if(!text) return;
+  await fetch(`${API}/api/videos/${id}/comment`, {method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({text})});
   render();
 }
 
-/* ============ АВТОРИЗАЦИЯ ============ */
+// --- АВТОРИЗАЦИЯ ---
 function viewLogin() {
   return `<div class="form-box">
-    <h2>Вход</h2>
-    <div id="err" class="error"></div>
-    <input id="loginEmail" placeholder="Email" type="email" value="admin@test.com">
-    <input id="loginPass" placeholder="Пароль" type="password" value="admin123">
+    <h2>Вход</h2><div id="err" style="color:#ff5555;margin-bottom:10px"></div>
+    <input id="email" placeholder="Email" type="email">
+    <input id="pass" placeholder="Пароль" type="password">
     <button class="btn btn-red" onclick="doLogin()">Войти</button>
-    <div class="switch">Нет аккаунта? <a onclick="showPage('register')">Регистрация</a></div>
+    <div class="switch">Нет аккаунта? <a onclick="showPage('register')">Создать</a></div>
   </div>`;
 }
 async function doLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPass').value;
-  const res = await fetch(`${API}/api/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  });
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('pass').value;
+  const res = await fetch(`${API}/api/login`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
   const data = await res.json();
-  if (!res.ok) return document.getElementById('err').textContent = data.error;
-  setAuth(data.token, data.user);
-  showPage('home');
+  if(!res.ok) return document.getElementById('err').textContent = data.error;
+  setAuth(data.token, data.user); showPage('home');
 }
 
 function viewRegister() {
   return `<div class="form-box">
-    <h2>Регистрация</h2>
-    <div id="err" class="error"></div>
-    <input id="regName" placeholder="Имя пользователя">
-    <input id="regEmail" placeholder="Email" type="email">
-    <input id="regPass" placeholder="Пароль (мин. 4)" type="password">
+    <h2>Регистрация</h2><div id="err" style="color:#ff5555;margin-bottom:10px"></div>
+    <input id="name" placeholder="Имя">
+    <input id="email" placeholder="Email" type="email">
+    <input id="pass" placeholder="Пароль" type="password">
     <button class="btn btn-red" onclick="doRegister()">Создать</button>
     <div class="switch">Есть аккаунт? <a onclick="showPage('login')">Войти</a></div>
   </div>`;
 }
 async function doRegister() {
-  const username = document.getElementById('regName').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPass').value;
-  const res = await fetch(`${API}/api/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, email, password })
-  });
+  const username = document.getElementById('name').value;
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('pass').value;
+  const res = await fetch(`${API}/api/register`, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username,email,password})});
   const data = await res.json();
-  if (!res.ok) return document.getElementById('err').textContent = data.error;
-  setAuth(data.token, data.user);
-  showPage('home');
+  if(!res.ok) return document.getElementById('err').textContent = data.error;
+  setAuth(data.token, data.user); showPage('home');
 }
 
-/* ============ ЗАГРУЗКА ВИДЕО ============ */
+// --- ЗАГРУЗКА ---
 function viewUpload() {
   if (!currentUser) return viewLogin();
-  return `<div class="form-box wide">
-    <h2>Загрузить видео</h2>
-    <div id="err" class="error"></div>
-    <input id="upTitle" placeholder="Название *">
-    <textarea id="upDesc" rows="3" placeholder="Описание"></textarea>
-    <input id="upFile" type="file" accept="video/*" onchange="onFilePick()">
-    <div id="fileInfo" class="hint"></div>
-    <div class="progress" id="progressWrap">
-      <div class="progress-fill" id="progressFill"></div>
-    </div>
-    <button class="btn btn-red" onclick="doUpload()">Опубликовать</button>
+  return `<div class="form-box" style="max-width:500px">
+    <h2>Загрузить видео</h2><div id="err" style="color:#ff5555;margin-bottom:10px"></div>
+    <input id="title" placeholder="Название">
+    <textarea id="desc" placeholder="Описание" rows="3" style="width:100%;background:#121212;border:1px solid #303030;color:#fff;padding:12px;border-radius:8px;margin-bottom:12px"></textarea>
+    <select id="type" style="width:100%;background:#121212;border:1px solid #303030;color:#fff;padding:12px;border-radius:8px;margin-bottom:12px">
+      <option value="false">Обычное видео (16:9)</option>
+      <option value="true">Shorts (вертикальное 9:16)</option>
+    </select>
+    <input id="file" type="file" accept="video/*" style="margin-bottom:20px">
+    <button class="btn btn-red" onclick="doUpload()" style="width:100%;padding:12px">Опубликовать</button>
   </div>`;
 }
-function onFilePick() {
-  const f = document.getElementById('upFile').files[0];
-  const info = document.getElementById('fileInfo');
-  if (!f) { info.textContent = ''; return; }
-  const sizeMb = (f.size / 1024 / 1024).toFixed(1);
-  info.textContent = `Файл: ${f.name} — ${sizeMb} МБ`;
-  info.style.color = f.size > 200 * 1024 * 1024 ? '#ff5555' : '#888';
-}
 async function doUpload() {
-  const title = document.getElementById('upTitle').value.trim();
-  const description = document.getElementById('upDesc').value.trim();
-  const file = document.getElementById('upFile').files[0];
-  const err = document.getElementById('err');
-  if (!title || !file) return err.textContent = 'Введите название и выберите файл';
-
+  if(isUploading) return; isUploading = true;
   const formData = new FormData();
-  formData.append('title', title);
-  formData.append('description', description);
-  formData.append('video', file);
-
-  const pw = document.getElementById('progressWrap');
-  const pf = document.getElementById('progressFill');
-  pw.style.display = 'block';
-
-  try {
-    // Имитация прогресса, так как fetch не поддерживает onprogress для загрузки
-    pf.style.width = '50%';
-    const res = await fetch(`${API}/api/videos`, {
-      method: 'POST',
-      headers: authHeaders(),
-      body: formData
-    });
-    pf.style.width = '100%';
-    if (!res.ok) {
-      const d = await res.json();
-      throw new Error(d.error || 'Ошибка загрузки');
-    }
-    showPage('home');
-  } catch (e) {
-    err.textContent = e.message;
-    pw.style.display = 'none';
-  }
+  formData.append('title', document.getElementById('title').value);
+  formData.append('description', document.getElementById('desc').value);
+  formData.append('isShort', document.getElementById('type').value);
+  formData.append('video', document.getElementById('file').files[0]);
+  const res = await fetch(`${API}/api/videos`, {method:'POST',headers:authHeaders(),body:formData});
+  if(res.ok) showPage('home'); else document.getElementById('err').textContent = 'Ошибка загрузки';
+  isUploading = false;
 }
 
-/* ============ РЕДАКТИРОВАНИЕ ============ */
-async function openEditModal(id) {
-  const res = await fetch(`${API}/api/videos/${id}`, { headers: authHeaders() });
-  const v = await res.json();
-  if (!canEdit(v)) return alert('Нет прав');
-
+// --- ПРОФИЛЬ ---
+function logout() { setAuth(null, null); showPage('home'); }
+function switchAccount() { logout(); showPage('login'); }
+function openPassModal() {
   document.getElementById('modalRoot').innerHTML = `
-    <div class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+    <div class="modal-backdrop" onclick="if(event.target===this)document.getElementById('modalRoot').innerHTML=''">
       <div class="modal">
-        <h2>Редактировать видео</h2>
-        <div id="editErr" class="error"></div>
-        <input id="editTitle" placeholder="Название" value="${escAttr(v.title)}">
-        <textarea id="editDesc" rows="4" placeholder="Описание">${esc(v.description || '')}</textarea>
-        ${isAdmin() ? `
-          <label class="hint" style="display:block;margin-bottom:4px">Статус (только админ)</label>
-          <select id="editStatus">
-            <option value="OK" ${v.status==='OK'?'selected':''}>Активно</option>
-            <option value="BLOCKED" ${v.status==='BLOCKED'?'selected':''}>Заблокировано</option>
-          </select>` : ''}
-        <label class="hint" style="display:block;margin-bottom:4px">Заменить видеофайл (необязательно)</label>
-        <input id="editFile" type="file" accept="video/*">
-        <div class="row-btns">
-          <button class="btn btn-red" onclick="saveEdit('${v.id}')">Сохранить</button>
-          <button class="btn cancel" onclick="closeModal()">Отмена</button>
-        </div>
-        <div class="row-btns">
-          <button class="btn danger-btn" onclick="deleteVideoFromModal('${v.id}')" style="background:#d32f2f;color:#fff">Удалить видео</button>
-        </div>
+        <h2>Сменить пароль</h2>
+        <input id="newPass" type="password" placeholder="Новый пароль">
+        <div style="display:flex;gap:10px"><button class="btn btn-red" onclick="doChangePass()">Сохранить</button><button class="btn" onclick="document.getElementById('modalRoot').innerHTML=''">Отмена</button></div>
       </div>
     </div>`;
 }
-function closeModal() { document.getElementById('modalRoot').innerHTML = ''; }
-
-async function saveEdit(id) {
-  const title = document.getElementById('editTitle').value.trim();
-  const description = document.getElementById('editDesc').value;
-  const statusEl = document.getElementById('editStatus');
-  const file = document.getElementById('editFile').files[0];
-  const err = document.getElementById('editErr');
-
-  if (!title) return err.textContent = 'Название не может быть пустым';
-
-  const formData = new FormData();
-  formData.append('title', title);
-  formData.append('description', description);
-  if (statusEl) formData.append('status', statusEl.value);
-  if (file) formData.append('video', file);
-
-  const res = await fetch(`${API}/api/videos/${id}`, {
-    method: 'PATCH',
-    headers: authHeaders(),
-    body: formData
-  });
-  if (!res.ok) {
-    const d = await res.json();
-    return err.textContent = d.error || 'Ошибка';
-  }
-  closeModal();
-  render();
+async function doChangePass() {
+  const np = document.getElementById('newPass').value;
+  if(np.length < 4) return alert('Короткий пароль');
+  const res = await fetch(`${API}/api/change-password`, {method:'POST',headers:{...authHeaders(),'Content-Type':'application/json'},body:JSON.stringify({newPassword:np})});
+  if(res.ok) { alert('Пароль изменен!'); document.getElementById('modalRoot').innerHTML=''; }
 }
 
-async function deleteVideoFromModal(id) {
-  if (!confirm('Удалить видео навсегда?')) return;
-  await fetch(`${API}/api/videos/${id}`, {
-    method: 'DELETE', headers: authHeaders()
-  });
-  closeModal();
-  showPage('home');
-}
-
-/* ============ АДМИНКА ============ */
-let adminTab = 'videos';
-async function viewAdmin() {
-  if (!isAdmin()) return `<div class="empty">Доступ запрещён</div>`;
-
-  let content = '';
-  if (adminTab === 'videos') {
-    const videos = await (await fetch(`${API}/api/videos`, { headers: authHeaders() })).json();
-    content = videos.length ? `<table>
-      <tr><th>Название</th><th>Автор</th><th>Просм.</th><th>Статус</th><th>Действия</th></tr>
-      ${videos.map(v => `<tr>
-        <td>${esc(v.title)}</td>
-        <td>${esc(v.authorName)}</td>
-        <td>${v.views}</td>
-        <td>${v.status === 'BLOCKED' ? '<span style="color:#ff5555">Заблок.</span>' : 'OK'}</td>
-        <td class="cell-actions">
-          <button class="edit" onclick="openEditModal('${v.id}')">✎ Ред.</button>
-          <button class="danger" onclick="toggleBlock('${v.id}', '${v.status}')">
-            ${v.status === 'BLOCKED' ? 'Разблок.' : 'Блок'}
-          </button>
-          <button class="danger" onclick="adminDeleteVideo('${v.id}')">Удалить</button>
-        </td>
-      </tr>`).join('')}</table>` : '<p>Нет видео</p>';
-  } else if (adminTab === 'users') {
-    const users = await (await fetch(`${API}/api/admin/users`, { headers: authHeaders() })).json();
-    content = `<table>
-      <tr><th>Имя</th><th>Email</th><th>Роль</th><th></th></tr>
-      ${users.map(x => `<tr>
-        <td>${esc(x.username)}</td>
-        <td>${esc(x.email)}</td>
-        <td>${x.role}</td>
-        <td>${x.id !== currentUser.id
-          ? `<button class="danger" onclick="adminDeleteUser('${x.id}')">Удалить</button>`
-          : '—'}</td>
-      </tr>`).join('')}</table>`;
-  }
-
-  return `<div class="admin">
-    <h1 style="margin-bottom:20px">Админ-панель</h1>
-    <div class="tabs">
-      <button class="${adminTab==='videos'?'active':''}" onclick="adminTab='videos';render()">Видео</button>
-      <button class="${adminTab==='users'?'active':''}" onclick="adminTab='users';render()">Пользователи</button>
-    </div>
-    ${content}
-  </div>`;
-}
-
-async function toggleBlock(id, currentStatus) {
-  const status = currentStatus === 'BLOCKED' ? 'OK' : 'BLOCKED';
-  const formData = new FormData();
-  formData.append('status', status);
-  await fetch(`${API}/api/videos/${id}`, {
-    method: 'PATCH', headers: authHeaders(), body: formData
-  });
-  render();
-}
-async function adminDeleteVideo(id) {
-  if (!confirm('Удалить видео?')) return;
-  await fetch(`${API}/api/videos/${id}`, { method: 'DELETE', headers: authHeaders() });
-  render();
-}
-async function adminDeleteUser(id) {
-  if (!confirm('Удалить пользователя?')) return;
-  await fetch(`${API}/api/admin/users/${id}`, { method: 'DELETE', headers: authHeaders() });
-  render();
-}
-
-/* ============ УТИЛИТЫ ============ */
-function esc(s) {
-  return String(s || '').replace(/[&<>"']/g, c => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
-  }[c]));
-}
-function escAttr(s) { return esc(s).replace(/`/g, '&#96;'); }
-
-/* ============ СТАРТ ============ */
 render();
 </script>
 </body>
-</html> 
+</html>
